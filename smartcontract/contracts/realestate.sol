@@ -20,6 +20,7 @@ interface IERC20 {
          bytes location;
          uint id;
          bytes contact;
+         uint cost;
 
      }
      struct buyerseller{
@@ -27,15 +28,15 @@ interface IERC20 {
          bytes location;
          bytes contact;
      }
-     uint private assetid;
-     mapping(address => bool) exist;
-     mapping(address=> buyerseller) BSdetails;
-     mapping(uint=> asset )assetDetails;
-     mapping(uint=> address[]) assetowners;
-     mapping(address=>uint[] ) assetowns;
-     mapping(address=>mapping(uint=>uint)) percentageown;
-     mapping(address=>mapping(uint=> bool)) own;
-     mapping(address=> mapping(uint => bool ))sellonof;
+     uint public assetid;
+     mapping(address => bool) public exist;
+     mapping(address=> buyerseller) public BSdetails;
+     mapping(uint=> asset ) public assetDetails;
+     mapping(uint=> address[]) public assetowners;
+     mapping(address=>uint[] ) public assetowns;
+     mapping(address=>mapping(uint=>uint)) public percentageown;
+     mapping(address=>mapping(uint=> bool)) public own;
+     mapping(address=> mapping(uint => bool )) public sellonof;
      bool internal locked; 
 
      IERC20 public immutable token;
@@ -58,7 +59,7 @@ interface IERC20 {
 
 
      function addbuyerseller(bytes memory _location,bytes memory _contact) public{
-         require(!exist[msg.sender],"addr doesn't exist");
+         require(!exist[msg.sender],"addr already exist");
          buyerseller memory bs = buyerseller(msg.sender,_location,_contact);
          BSdetails[msg.sender] = bs;
          exist[msg.sender] = true;
@@ -74,36 +75,38 @@ interface IERC20 {
 
 
 
-     function addAsset(bytes memory assetLocation,bytes memory assetcontact) public noReentrant {
-         require(exist[msg.sender]= true,"addr doesn't exist");
-         assetid++;
+     function addAsset(bytes memory assetLocation,bytes memory assetcontact,uint assetcost) public noReentrant {
+         require(exist[msg.sender] == true,"addr doesn't exist");
+         assetid += 1;
          assetowners[assetid].push(msg.sender);
          assetowns[msg.sender].push(assetid);
-         percentageown[msg.sender][assetid] = 100;
+         percentageown[msg.sender][assetid] = 100000000000000000000;
          own[msg.sender][assetid] = true;
          sellonof[msg.sender][assetid] = false;
-         asset memory Asset = asset(msg.sender,assetLocation,assetid,assetcontact);
+         asset memory Asset = asset(msg.sender,assetLocation,assetid,assetcontact,assetcost);
          assetDetails[assetid] = Asset;
 
 
      }
      function sellon(uint id) public{
-         require(own[msg.sender][id]= true,"owner is not calling");
-         require(sellonof[msg.sender][id]= false,"sell is already on");
+         require(own[msg.sender][id]== true,"owner is not calling");
+         require(sellonof[msg.sender][id]== false,"sell is already on");
          sellonof[msg.sender][id]= true;
      }
       function selloff(uint id) public{
-         require(own[msg.sender][id]= true,"owner is not calling");
-         require(sellonof[msg.sender][id]= true,"sell is already off");
+         require(own[msg.sender][id]== true,"owner is not calling");
+         require(sellonof[msg.sender][id]== true,"sell is already off");
          sellonof[msg.sender][id]= false;
      }
      function BuyAsset(uint id,uint amount,address owner) public noReentrant {
-         require(amount & id>0,"value needs greater than zero" );
-         require(exist[msg.sender] = true,"addr doesn't exist");
-         require(own[owner][id]= true,"owner don't own this id");
+         require(amount>0,"value needs greater than zero" );
+         require(id>0,"id needs greater than zero" );
+         require(exist[msg.sender] == true,"addr doesn't exist");
+         require(own[owner][id]== true,"owner don't own this id");
          uint po = percentageown[owner][id];
          require(po>0,"you don't own this asset");
-         uint totalvalue = 200;
+         asset memory _asset = assetDetails[1];
+         uint totalvalue = _asset.cost;
          uint op = getPercentage(amount,totalvalue);
          require(op<=po,"you cant proceed");
          if(op<po){
@@ -135,6 +138,25 @@ interface IERC20 {
         uint256 oneHundredPercent = PRBMathUD60x18.fromUint(100);
         return a.mul(oneHundredPercent).div(b);
     }
+
+      function getAssetowners(uint id) public view returns (address[] memory ){
+        return assetowners[id];
+    }
+     function getPercentageown(address owner,uint _assetid) public view returns (uint){
+        return percentageown[owner][_assetid];
+    }
+
+    function getOwn(address owner,uint Assetid) public view returns (bool){
+        return own[owner][Assetid];
+    }
+    function getSellonof(address owner,uint assetId) public view returns (bool){
+        return sellonof[owner][assetId];
+    }
+     function getAssetowns(address owner) public view returns (uint[] memory ){
+        return assetowns[owner];
+    }
+
+
 
 
 
